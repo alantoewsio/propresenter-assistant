@@ -80,6 +80,7 @@ public static class SelfTests
             Assert(service.Scan([hiddenImage, hiddenVideo, hiddenArchive, hiddenFolder], progress, CancellationToken.None).Count == 0, "Explicit imports skip hidden media, archives and folders");
             var visibleExplorer = ExplorerSelection.Scan(service, [clicked], true, progress, CancellationToken.None);
             Assert(visibleExplorer.Count == 3 && visibleExplorer.Single(i => i.Selected).Source == clicked, "Explorer neighboring-picture scan excludes hidden media while preserving clicked selection");
+            LegacyMediaTests.Run(Assert, root);
             await ApiTests.Run(Assert, root);
             File.WriteAllText(report, JsonSerializer.Serialize(new { passed = true, checks }, new JsonSerializerOptions { WriteIndented = true })); return 0;
         }
