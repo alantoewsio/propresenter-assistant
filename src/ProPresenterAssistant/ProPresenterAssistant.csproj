@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Version>0.1.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../../assets/app-icon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(FfmpegDir)' != ''">
+    <EmbeddedResource Include="$(FfmpegDir)\ffmpeg.exe" LogicalName="tools.ffmpeg.exe" />
+    <EmbeddedResource Include="$(FfmpegDir)\ffprobe.exe" LogicalName="tools.ffprobe.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="../../assets/app-icon.ico" Link="Assets/app-icon.ico" />
+    <EmbeddedResource Include="../../assets/app-icon.ico" LogicalName="app-icon.ico" />
+    <PackageReference Include="SharpCompress" Version="0.50.5" />
+    <PackageReference Include="System.Management" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

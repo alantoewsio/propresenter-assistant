@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net9.0-windows</TargetFramework><UseWPF>true</UseWPF><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><Version>0.1.0</Version><AssemblyName>ProPresenterAssistant-Setup</AssemblyName></PropertyGroup>
+ <PropertyGroup><ApplicationIcon>../../assets/app-icon.ico</ApplicationIcon></PropertyGroup>
+ <ItemGroup><Resource Include="../../assets/app-icon.ico" Link="Assets/app-icon.ico"/></ItemGroup>
+ <ItemGroup Condition="'$(PayloadPath)' != ''"><EmbeddedResource Include="$(PayloadPath)" LogicalName="payload.zip"/></ItemGroup>
+</Project>

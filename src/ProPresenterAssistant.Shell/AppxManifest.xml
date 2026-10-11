@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+ xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+ xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+ xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+ xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+ xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
+ xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+ IgnorableNamespaces="uap uap10 com desktop4 desktop5 rescap">
+ <Identity Name="ProPresenterAssistant.Shell" Publisher="CN=ProPresenter Assistant" Version="1.0.0.0" ProcessorArchitecture="x64"/>
+ <Properties><DisplayName>ProPresenter Assistant</DisplayName><PublisherDisplayName>ProPresenter Assistant</PublisherDisplayName><Logo>Assets\Logo.png</Logo><uap10:AllowExternalContent>true</uap10:AllowExternalContent></Properties>
+ <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22000.0" MaxVersionTested="10.0.26100.0"/></Dependencies>
+ <Resources><Resource Language="en-us"/></Resources>
+ <Applications><Application Id="Assistant" Executable="ProPresenterAssistant.exe" uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
+  <uap:VisualElements DisplayName="ProPresenter Assistant" Description="Import media into ProPresenter" BackgroundColor="transparent" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\Logo.png" AppListEntry="none"/>
+  <Extensions>
+   <com:Extension Category="windows.comServer"><com:ComServer><com:SurrogateServer DisplayName="ProPresenter import command"><com:Class Id="9FBB5941-8C17-4978-A4D7-662318D49371" Path="ProPresenterAssistant.Shell.dll" ThreadingModel="STA"/></com:SurrogateServer></com:ComServer></com:Extension>
+   <desktop4:Extension Category="windows.fileExplorerContextMenus"><desktop4:FileExplorerContextMenus>
+    <desktop5:ItemType Type="*"><desktop5:Verb Id="ImportIntoProPresenter" Clsid="9FBB5941-8C17-4978-A4D7-662318D49371"/></desktop5:ItemType>
+    <desktop5:ItemType Type="Directory"><desktop5:Verb Id="ImportFolderIntoProPresenter" Clsid="9FBB5941-8C17-4978-A4D7-662318D49371"/></desktop5:ItemType>
+   </desktop4:FileExplorerContextMenus></desktop4:Extension>
+  </Extensions>
+ </Application></Applications>
+ <Capabilities><rescap:Capability Name="runFullTrust"/><rescap:Capability Name="unvirtualizedResources"/></Capabilities>
+</Package>

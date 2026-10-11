@@ -1,0 +1,18 @@
+ProPresenter Assistant is an independent project, not affiliated with Renewed Vision.
+
+FFmpeg/FFprobe 9.0.2 essentials Windows build by gyan.dev
+https://www.gyan.dev/ffmpeg/builds/
+License: GPL version 3. See FFmpeg-LICENSE.txt and FFmpeg-BUILD.txt.
+FFmpeg source for this build: https://github.com/FFmpeg/FFmpeg/commit/946fcce07b
+Build scripts and external-library source references: https://github.com/GyanD/codexffmpeg
+The embedded FFmpeg executables run as separate programs. You may replace extracted copies in the per-user tools cache with compatible builds.
+
+SharpCompress 0.50.5 — MIT license
+https://github.com/adamhathcock/sharpcompress
+Copyright (c) 2014 Adam Hathcock. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the Software), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to inclusion of this copyright notice and permission notice in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Microsoft .NET runtime, WPF, System.Management — MIT license
+https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
+https://github.com/dotnet/wpf/blob/main/LICENSE.TXT
+
+Additional dependency notices are available in their NuGet packages and the FFmpeg build source. Review redistribution obligations before publishing a signed commercial distribution.

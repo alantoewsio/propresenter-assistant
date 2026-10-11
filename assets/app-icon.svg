@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>ProPresenter Assistant — import media</title>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#FF6C1A"/>
+  <rect x="88" y="58" width="120" height="140" rx="16" fill="none" stroke="white" stroke-width="12"/>
+  <circle cx="172" cy="91" r="9" fill="white"/>
+  <path d="M108 129 129 103 149 124 159 115 184 140H108Z" fill="white"/>
+  <path d="M40 166H144M120 142 144 166 120 190" fill="none" stroke="#FF6C1A" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M40 166H144M120 142 144 166 120 190" fill="none" stroke="white" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
