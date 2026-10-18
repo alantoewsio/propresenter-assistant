@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets/ApiGuide/*.png" />
     <Resource Include="../../assets/app-icon.ico" Link="Assets/app-icon.ico" />
     <EmbeddedResource Include="../../assets/app-icon.ico" LogicalName="app-icon.ico" />
     <PackageReference Include="SharpCompress" Version="0.50.5" />

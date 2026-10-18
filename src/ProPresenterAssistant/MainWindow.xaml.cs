@@ -99,6 +99,7 @@ public partial class MainWindow : Window
         catch (Exception ex) { Error(ex); }
         finally { LaunchProPresenterButton.IsEnabled = true; }
     }
+    private void ShowApiGuideClick(object sender, RoutedEventArgs e) => NetworkGuide.Show(this);
     public Task RefreshAvailablePlaylists() => playlistRefresh ??= RefreshPlaylistCore();
     private async Task RefreshPlaylistCore()
     {
@@ -110,6 +111,9 @@ public partial class MainWindow : Window
             var status = await ApiDiscovery.Detect(Settings, windowLifetime.Token);
             if (port != Settings.Port) return;
             LaunchProPresenterButton.Visibility = !status.Running && status.ActivePort == null ? Visibility.Visible : Visibility.Collapsed;
+            bool networkDisabled = status.Running && status.ActivePort == null && status.Enabled == false;
+            ShowApiGuideButton.Visibility = networkDisabled ? Visibility.Visible : Visibility.Collapsed;
+            if (networkDisabled) throw new IOException("ProPresenter is running, but its API is not enabled.");
             if (!status.Running || status.ActivePort == null) throw new IOException(status.Message);
             if (Settings.AutoDetectApi && port != status.ActivePort.Value) { Settings.Port = status.ActivePort.Value; port = Settings.Port; Settings.Save(); }
             using var client = new ProPresenterClient(Settings);

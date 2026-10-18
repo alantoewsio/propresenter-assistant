@@ -21,6 +21,19 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Length == 2 && e.Args[0] == "--api-guide-preview")
+        {
+            var owner = new MainWindow(); MainWindow = owner;
+            owner.Demo(); owner.Show();
+            var guide = NetworkGuide.Create(owner);
+            guide.Height = 1100;
+            guide.Show(); await Task.Delay(300); guide.UpdateLayout();
+            var bitmap = new RenderTargetBitmap((int)guide.ActualWidth, (int)guide.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(guide);
+            var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bitmap));
+            using (var output = File.Create(e.Args[1])) png.Save(output);
+            guide.Close(); Shutdown(); return;
+        }
         if (e.Args.Length == 3 && e.Args[0] == "--resume-job")
         {
             try
