@@ -57,7 +57,7 @@ public static partial class Program
             working = true; action.IsEnabled = false; progress.Visibility = Visibility.Visible; progress.IsIndeterminate = true;
             try
             {
-                if (Process.GetProcessesByName("ProPresenterAssistant").Any()) throw new IOException("Exit ProPresenter Assistant from its system tray menu, then retry.");
+                if (!await CloseRunningAssistant(window)) { progress.Visibility = Visibility.Collapsed; return; }
                 if (uninstall) { await Task.Run(Uninstall); status.Text = "Uninstalled. Your imported media has been kept."; action.Content = "Close"; }
                 else
                 {
@@ -78,6 +78,33 @@ public static partial class Program
             window.Loaded += async (_, _) => { await Task.Delay(300); window.UpdateLayout(); var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32); bitmap.Render(window); var png = new System.Windows.Media.Imaging.PngBitmapEncoder(); png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap)); using var stream = File.Create(args[screenshotAt + 1]); png.Save(stream); app.Shutdown(); };
         }
         return app.Run(window);
+    }
+    private static async Task<bool> CloseRunningAssistant(Window owner)
+    {
+        var processes = Process.GetProcessesByName("ProPresenterAssistant");
+        try
+        {
+            using var installer = Process.GetCurrentProcess();
+            var running = processes.Where(p => p.SessionId == installer.SessionId).ToArray();
+            if (running.Length == 0) return true;
+            if (MessageBox.Show(owner,
+                "ProPresenter Assistant is running. Close it and continue? Active work will be interrupted and unsaved selections will be lost. ProPresenter itself will stay open.",
+                "Close ProPresenter Assistant?", MessageBoxButton.YesNo, MessageBoxImage.Question,
+                MessageBoxResult.No) != MessageBoxResult.Yes) return false;
+            foreach (var process in running)
+            {
+                try
+                {
+                    if (process.HasExited) continue;
+                    process.Kill();
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                    await process.WaitForExitAsync(timeout.Token);
+                }
+                catch (InvalidOperationException) when (process.HasExited) { }
+            }
+            return true;
+        }
+        finally { foreach (var process in processes) process.Dispose(); }
     }
     private static void ValidateEntry(string name) { if (Path.IsPathRooted(name) || name.Contains(':') || name.Replace('\\', '/').Split('/').Contains("..")) throw new IOException("Unsafe installer payload."); }
     private static void Install()

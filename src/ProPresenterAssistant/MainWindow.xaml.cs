@@ -86,6 +86,19 @@ public partial class MainWindow : Window
         await RefreshAvailablePlaylists();
         if (!playlistConnected) throw new IOException(connectionProblem);
     }
+    private async void LaunchProPresenterClick(object sender, RoutedEventArgs e)
+    {
+        LaunchProPresenterButton.IsEnabled = false;
+        try
+        {
+            using var client = new ProPresenterClient(Settings);
+            await client.EnsureRunning(Reporter(), windowLifetime.Token);
+            await RefreshAvailablePlaylists();
+        }
+        catch (OperationCanceledException) when (windowLifetime.IsCancellationRequested) { }
+        catch (Exception ex) { Error(ex); }
+        finally { LaunchProPresenterButton.IsEnabled = true; }
+    }
     public Task RefreshAvailablePlaylists() => playlistRefresh ??= RefreshPlaylistCore();
     private async Task RefreshPlaylistCore()
     {
@@ -96,6 +109,7 @@ public partial class MainWindow : Window
             if (PlaylistBox.Items.Count == 0) ConnectionText.Text = $"Loading playlists from port {port}…";
             var status = await ApiDiscovery.Detect(Settings, windowLifetime.Token);
             if (port != Settings.Port) return;
+            LaunchProPresenterButton.Visibility = !status.Running && status.ActivePort == null ? Visibility.Visible : Visibility.Collapsed;
             if (!status.Running || status.ActivePort == null) throw new IOException(status.Message);
             if (Settings.AutoDetectApi && port != status.ActivePort.Value) { Settings.Port = status.ActivePort.Value; port = Settings.Port; Settings.Save(); }
             using var client = new ProPresenterClient(Settings);
