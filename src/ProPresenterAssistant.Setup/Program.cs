@@ -9,7 +9,7 @@ using System.Windows.Media;
 using Microsoft.Win32;
 
 namespace ProPresenterAssistant.Setup;
-public static class Program
+public static partial class Program
 {
     private static readonly string InstallRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "ProPresenter Assistant");
     private static string Executable => Path.Combine(InstallRoot, "ProPresenterAssistant.exe");
@@ -18,6 +18,7 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Contains("--silent-update")) return SilentUpdate(args).GetAwaiter().GetResult();
         if (args.Contains("--trust-shell-certificate")) { try { ShellRegistration.TrustBundledCertificate(); return 0; } catch { return 1; } }
         if (args.Contains("--uninstall") && string.Equals(Path.GetDirectoryName(Environment.ProcessPath), InstallRoot, StringComparison.OrdinalIgnoreCase))
         {
@@ -31,7 +32,7 @@ public static class Program
         if (waitAt >= 0 && waitAt + 1 < args.Length && int.TryParse(args[waitAt + 1], out int parentId)) { try { Process.GetProcessById(parentId).WaitForExit(10000); } catch (ArgumentException) { } }
         if (args.Contains("--verify-payload"))
         {
-            try { using var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("payload.zip") ?? throw new Exception("Missing payload"); using var zip = new ZipArchive(resource); foreach (string required in new[] { "ProPresenterAssistant.exe", "README.md", "ProPresenterAssistant.Shell.dll", "ProPresenterAssistant.Shell.msix", "ProPresenterAssistant.Shell.cer", "Assets/Logo.png" }) if (zip.GetEntry(required) == null && zip.GetEntry(required.Replace('/', '\\')) == null) throw new Exception("Incomplete payload: " + required); foreach (var e in zip.Entries) ValidateEntry(e.FullName); File.WriteAllText(args.Last(), $"Verified {zip.Entries.Count} installer payload entries, including the native Windows 11 context menu package."); return 0; } catch (Exception ex) { File.WriteAllText(args.Last(), ex.ToString()); return 1; }
+            try { using var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("payload.zip") ?? throw new Exception("Missing payload"); using var zip = new ZipArchive(resource); foreach (string required in new[] { "ProPresenterAssistant.exe", "README.md", "ProPresenterAssistant.Shell.msix", "ProPresenterAssistant.Shell.cer", "Assets/Logo.png" }) if (zip.GetEntry(required) == null && zip.GetEntry(required.Replace('/', '\\')) == null) throw new Exception("Incomplete payload: " + required); foreach (var e in zip.Entries) ValidateEntry(e.FullName); File.WriteAllText(args.Last(), $"Verified {zip.Entries.Count} installer payload entries, including the native Windows 11 context menu package."); return 0; } catch (Exception ex) { File.WriteAllText(args.Last(), ex.ToString()); return 1; }
         }
         bool uninstall = args.Contains("--uninstall"); var app = new Application();
         var window = new Window { Title = uninstall ? "Uninstall ProPresenter Assistant" : "Install ProPresenter Assistant", Width = 620, Height = 520, ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterScreen, Background = new SolidColorBrush(Color.FromRgb(16, 19, 27)), Foreground = Brushes.White, FontFamily = new FontFamily("Segoe UI"), FontSize = 14 };
@@ -85,7 +86,7 @@ public static class Program
         using var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream("payload.zip") ?? throw new IOException("Installer payload is missing."); using var zip = new ZipArchive(payload);
         foreach (var entry in zip.Entries) { ValidateEntry(entry.FullName); string path = Path.GetFullPath(Path.Combine(InstallRoot, entry.FullName)); if (!path.StartsWith(InstallRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new IOException("Invalid install path."); if (entry.FullName.EndsWith('/')) Directory.CreateDirectory(path); else { Directory.CreateDirectory(Path.GetDirectoryName(path)!); entry.ExtractToFile(path, true); } }
         string uninstall = Path.Combine(InstallRoot, "Uninstall.exe"); if (!string.Equals(Environment.ProcessPath, uninstall, StringComparison.OrdinalIgnoreCase)) File.Copy(Environment.ProcessPath!, uninstall, true);
-        using var key = Registry.CurrentUser.CreateSubKey(UninstallKey); key.SetValue("DisplayName", "ProPresenter Assistant"); key.SetValue("DisplayVersion", "0.1.0"); key.SetValue("Publisher", "ProPresenter Assistant Project"); key.SetValue("InstallLocation", InstallRoot); key.SetValue("UninstallString", $"\"{uninstall}\" --uninstall"); key.SetValue("DisplayIcon", Executable); key.SetValue("NoModify", 1); key.SetValue("NoRepair", 1);
+        using var key = Registry.CurrentUser.CreateSubKey(UninstallKey); key.SetValue("DisplayName", "ProPresenter Assistant"); key.SetValue("DisplayVersion", Assembly.GetExecutingAssembly().GetName().Version!.ToString(3)); key.SetValue("Publisher", "ProPresenter Assistant Project"); key.SetValue("InstallLocation", InstallRoot); key.SetValue("UninstallString", $"\"{uninstall}\" --uninstall"); key.SetValue("DisplayIcon", Executable); key.SetValue("NoModify", 1); key.SetValue("NoRepair", 1);
     }
     private static void CreateShortcut(string path, string arguments)
     {

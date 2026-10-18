@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $output = Join-Path $PSScriptRoot 'artifacts/shell-contract-test'
 & (Join-Path $PSScriptRoot 'build-shell.ps1') -Output $output
+$shellDll = (Get-ChildItem -LiteralPath $output -Filter 'ProPresenterAssistant.Shell-*.dll' | Select-Object -First 1).FullName
 $vs = & 'C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe' -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
 $vc = (Get-ChildItem "$vs/VC/Tools/MSVC" -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName
 $sdkRoot='C:/Program Files (x86)/Windows Kits/10'
@@ -16,10 +17,10 @@ $first=Join-Path $output 'First & slide.png'; $second=Join-Path $output 'Ünicod
 Set-Content -LiteralPath $first 'test'; Set-Content -LiteralPath $second 'test'
 $capture=Join-Path $output 'captured-request.txt'
 if(Test-Path -LiteralPath $capture) { Remove-Item -LiteralPath $capture }
-& "$output/TestCommand.exe" "$output/ProPresenterAssistant.Shell.dll" $first $second
+& "$output/TestCommand.exe" $shellDll $first $second
 if($LASTEXITCODE) { throw "Shell contract test failed: $LASTEXITCODE" }
 $folder=Join-Path $output 'Folder with pictures'
 New-Item -ItemType Directory -Force -Path $folder | Out-Null
 Remove-Item -LiteralPath $capture
-& "$output/TestCommand.exe" "$output/ProPresenterAssistant.Shell.dll" $folder $second
+& "$output/TestCommand.exe" $shellDll $folder $second
 if($LASTEXITCODE) { throw "Shell folder handoff test failed: $LASTEXITCODE" }

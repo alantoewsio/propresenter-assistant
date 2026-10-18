@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Forms = System.Windows.Forms;
+using ProPresenterAssistant.Updates;
 namespace ProPresenterAssistant;
 public partial class App : Application
 {
@@ -14,6 +15,8 @@ public partial class App : Application
     private System.Drawing.Icon? trayIcon;
     private readonly CancellationTokenSource lifetime = new();
     private MainWindow? window;
+    private UpdateController? updates;
+    public void ExitForUpdate() { window!.ExitApp(); Shutdown(); }
     private static string Channel => "ProPresenterAssistant-" + WindowsIdentity.GetCurrent().User!.Value.Replace('-', '_');
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -75,6 +78,21 @@ public partial class App : Application
         if (e.Args.Length == 4 && e.Args[0] == "--live-probe") { int result = await LiveProbe.Run(int.Parse(e.Args[1]), e.Args[2], e.Args[3]); Shutdown(result); return; }
         DispatcherUnhandledException += (_, a) => { Directory.CreateDirectory(Settings.DataRoot); File.AppendAllText(Path.Combine(Settings.DataRoot, "errors.log"), DateTime.Now + " " + a.Exception + "\n"); MessageBox.Show(a.Exception.Message, "ProPresenter Assistant"); a.Handled = true; };
         if (e.Args.Contains("--self-test")) { int code = await SelfTests.Run(e.Args.LastOrDefault() ?? "self-test.json"); Shutdown(code); return; }
+        string? restartToken = e.Args.Length == 2 && e.Args[0] == "--update-started" && Guid.TryParseExact(e.Args[1], "N", out _) ? e.Args[1] : null;
+        NamedPipeClientStream? restart = null;
+        StreamReader? restartReader = null;
+        if (restartToken != null)
+        {
+            try
+            {
+                restart = new NamedPipeClientStream(".", "PPA-restart-" + restartToken, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15)); await restart.ConnectAsync(timeout.Token);
+                restartReader = new StreamReader(restart, System.Text.Encoding.UTF8, false, 1024, true);
+                if (await restartReader.ReadLineAsync(timeout.Token) != "START " + UpdateClient.Current.ToString(3)) throw new IOException("Update startup version mismatch.");
+            }
+            catch { restart?.Dispose(); Shutdown(1); return; }
+        }
+        else if (UpdateSafety.Installing()) { MessageBox.Show("An update is being installed. The assistant will reopen automatically.", "Assistant update"); Shutdown(); return; }
         bool demo = e.Args.Contains("--demo"); mutex = new Mutex(true, "Local\\" + Channel + (demo ? "-demo" : ""), out bool first);
         string[] importPaths;
         try { importPaths = ImportRequests.ReadArguments(e.Args); }
@@ -95,7 +113,31 @@ public partial class App : Application
         using (var iconStream = typeof(App).Assembly.GetManifestResourceStream("app-icon.ico")!)
         using (var icon = new System.Drawing.Icon(iconStream, 32, 32)) trayIcon = (System.Drawing.Icon)icon.Clone();
         tray = new Forms.NotifyIcon { Text = "ProPresenter Assistant", Icon = trayIcon, Visible = true };
-        var menu = new Forms.ContextMenuStrip(); menu.Items.Add("Open assistant", null, (_, _) => window.ShowApp()); menu.Items.Add("Exit", null, (_, _) => { if (window.Busy && MessageBox.Show("An import is running. Cancel and exit?", "ProPresenter Assistant", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; window.ExitApp(); Shutdown(); }); tray.ContextMenuStrip = menu; tray.DoubleClick += (_, _) => window.ShowApp();
+        updates = new UpdateController(this, window, lifetime.Token);
+        var menu = new Forms.ContextMenuStrip(); menu.Items.Add("Open assistant", null, (_, _) => window.ShowApp()); menu.Items.Add("Check for updates…", null, async (_, _) => await updates.Check(true)); menu.Items.Add("Exit", null, (_, _) => { if (updates.Working) { MessageBox.Show("Cancel the download in the update window, or wait for installation to finish.", "Assistant update"); return; } if (window.Busy && MessageBox.Show("An import is running. Cancel and exit?", "ProPresenter Assistant", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return; window.ExitApp(); Shutdown(); }); tray.ContextMenuStrip = menu; tray.DoubleClick += (_, _) => window.ShowApp();
+        if (restart != null)
+        {
+            try
+            {
+                window.IsEnabled = false; window.ShowApp(); await window.RestoreUpdateSession();
+                using var writer = new StreamWriter(restart, new System.Text.UTF8Encoding(false), 1024, true) { AutoFlush = true };
+                await writer.WriteLineAsync("HEALTHY " + UpdateClient.Current.ToString(3));
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                if (await restartReader!.ReadLineAsync(timeout.Token) != "SUCCESS") throw new IOException("Installer did not confirm update completion.");
+                try { window.FinishUpdateSession(); } catch { }
+                window.IsEnabled = true;
+                window.StatusText.Text = "Updated to " + UpdateClient.Current.ToString(3) + ".";
+            }
+            catch { window.ExitApp(); Shutdown(1); return; }
+            finally { restartReader?.Dispose(); restart.Dispose(); }
+        }
+        else if (e.Args.Contains("--update-recovered"))
+        {
+            window.ShowApp();
+            try { await window.RestoreUpdateSession(); window.FinishUpdateSession(); MessageBox.Show(File.ReadAllText(Path.Combine(UpdateSafety.Root, "last-result.txt")), "Assistant update needs attention"); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "Assistant update recovery"); }
+        }
+        _ = updates.Loop();
         _ = PipeLoop(); _ = UsbLoop(); if (importPaths.Length > 0) await window.Receive(importPaths, false, e.Args.Contains("--import-list")); else if (!e.Args.Contains("--tray")) window.Show();
     }
     private static bool FileOrFolder(string arg) => !arg.StartsWith("--") && (File.Exists(arg) || Directory.Exists(arg));
@@ -112,7 +154,7 @@ public partial class App : Application
         var known = await Task.Run(WindowsIntegration.UsbVolumes);
         while (!lifetime.IsCancellationRequested)
         {
-            try { await Task.Delay(2500, lifetime.Token); var current = await Task.Run(WindowsIntegration.UsbVolumes, lifetime.Token); var added = current.Except(known, StringComparer.OrdinalIgnoreCase).ToArray(); known = current; if (added.Length > 0) await Dispatcher.InvokeAsync(() => { if (window!.Settings.MonitorUsb) _ = window.Receive(added, true); }); }
+            try { await Task.Delay(2500, lifetime.Token); if (updates?.Working == true) continue; var current = await Task.Run(WindowsIntegration.UsbVolumes, lifetime.Token); var added = current.Except(known, StringComparer.OrdinalIgnoreCase).ToArray(); known = current; if (added.Length > 0) await Dispatcher.InvokeAsync(() => { if (window!.Settings.MonitorUsb) _ = window.Receive(added, true); }); }
             catch (OperationCanceledException) { break; } catch { }
         }
     }

@@ -11,8 +11,13 @@ $native = Join-Path $PSScriptRoot 'artifacts/shell-build'
 New-Item -ItemType Directory -Force -Path $native | Out-Null
 $cl = Join-Path $vc 'bin/Hostx64/x64/cl.exe'
 $includes = @("/I$vc/include", "/I$sdkRoot/Include/$sdk/um", "/I$sdkRoot/Include/$sdk/shared", "/I$sdkRoot/Include/$sdk/ucrt")
-& $cl /nologo /LD /MT /O2 /std:c++17 /EHsc /W4 $includes (Join-Path $PSScriptRoot 'src/ProPresenterAssistant.Shell/Command.cpp') "/Fo$native/Command.obj" /link /EXPORT:DllGetClassObject,PRIVATE /EXPORT:DllCanUnloadNow,PRIVATE "/IMPLIB:$native/Command.lib" "/OUT:$Output/ProPresenterAssistant.Shell.dll" "/LIBPATH:$vc/lib/x64" "/LIBPATH:$sdkRoot/Lib/$sdk/um/x64" "/LIBPATH:$sdkRoot/Lib/$sdk/ucrt/x64" ole32.lib shell32.lib shlwapi.lib uuid.lib
+[xml]$shellManifest = Get-Content (Join-Path $PSScriptRoot 'src/ProPresenterAssistant.Shell/AppxManifest.xml') -Raw
+$shellDll = $shellManifest.SelectSingleNode("//*[local-name()='Class']").Path
+if ($shellDll -notmatch '^ProPresenterAssistant\.Shell-[0-9.]+\.dll$') { throw 'Invalid shell DLL filename.' }
+& $cl /nologo /LD /MT /O2 /std:c++17 /EHsc /W4 $includes (Join-Path $PSScriptRoot 'src/ProPresenterAssistant.Shell/Command.cpp') "/Fo$native/Command.obj" /link /Brepro /EXPORT:DllGetClassObject,PRIVATE /EXPORT:DllCanUnloadNow,PRIVATE "/IMPLIB:$native/Command.lib" "/OUT:$Output/$shellDll" "/LIBPATH:$vc/lib/x64" "/LIBPATH:$sdkRoot/Lib/$sdk/um/x64" "/LIBPATH:$sdkRoot/Lib/$sdk/ucrt/x64" ole32.lib shell32.lib shlwapi.lib uuid.lib
 if ($LASTEXITCODE) { throw 'Explorer extension build failed.' }
+# Keep already-loaded Explorer DLLs out of replacement; each shell revision has its own filename.
+Get-ChildItem -LiteralPath $Output -Filter 'ProPresenterAssistant.Shell*.dll' | Where-Object Name -ne $shellDll | Remove-Item
 $package = Join-Path $native 'package'
 New-Item -ItemType Directory -Force -Path "$package/Assets", "$Output/Assets" | Out-Null
 Copy-Item (Join-Path $PSScriptRoot 'src/ProPresenterAssistant.Shell/AppxManifest.xml') "$package/AppxManifest.xml"

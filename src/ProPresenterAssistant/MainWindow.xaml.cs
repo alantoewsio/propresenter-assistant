@@ -53,7 +53,7 @@ public partial class MainWindow : Window
     private async void WindowDrop(object sender, System.Windows.DragEventArgs e) { if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is string[] paths) await Receive(paths, false); }
     public async Task Receive(string[] paths, bool usb, bool explorer = false)
     {
-        if (Busy || screen is "selection" or "review") { requests.Enqueue((paths, usb, explorer)); StatusText.Text = "Another source is waiting. Finish this selection to continue."; return; }
+        if (!IsEnabled || Busy || screen is "selection" or "review") { requests.Enqueue((paths, usb, explorer)); StatusText.Text = "Another source is waiting. Finish this selection to continue."; return; }
         ShowApp(); await LoadSources(paths, usb, explorer);
     }
     private async Task StopPreviews() { previews?.Cancel(); try { await previewTask; } catch { } previews?.Dispose(); previews = null; }
